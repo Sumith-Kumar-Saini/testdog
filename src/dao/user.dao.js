@@ -91,6 +91,35 @@ class UserDAO {
     const user = await User.aggregate([{ $sample: { size: 1 } }]);
     return user.length > 0 ? user[0] : null;
   }
+
+  /**
+   * Get all users with optional field selection.
+   * @param {string} selectFields - Space-separated list of fields to return.
+   * @returns {Promise<Array>} - Array of user documents.
+   */
+  /**
+   * Get paginated list of users.
+   * @param {number} page - Page number
+   * @param {number} limit - Number of users per page
+   * @returns {Promise<Object>} - { data: [], total }
+   */
+  async getAllUsersPaginated(page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
+
+    // Include role but exclude sensitive fields for security
+    const selectFields =
+      '+role -password -isEmailVerified -forgotPasswordToken -emailVerificationToken -__v';
+
+    const [data, total] = await Promise.all([
+      User.find()
+        .select(selectFields)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 }), // Sort by newest first
+      User.countDocuments(),
+    ]);
+    return { data, total };
+  }
 }
 
 export default new UserDAO();
